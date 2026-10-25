@@ -63,7 +63,7 @@ Details live in `docs/architecture.md` (created after Plan Mode). Core principle
 - `Giffy/Giffy.xcodeproj`: the Xcode project. Note the nesting: the project lives in the `Giffy/` subfolder, not in the repo root
 - `Giffy/Giffy/`: app sources and `Assets.xcassets`. It is a synchronized folder group, so files created on disk appear in Xcode automatically
 - `docs/`: `PLAN.md`, `architecture.md`, `design/`
-- Repo root: `CLAUDE.md`, `README.md`, `.gitignore`
+- Repo root: `CLAUDE.md`, `README.md`, `.gitignore`, `.swiftlint.yml`, `.claude/settings.json` (permissions), `.githooks/` (git hooks)
 
 ## Commands
 
@@ -71,7 +71,8 @@ Run all commands from the repo root.
 
 - Run the app: open `Giffy/Giffy.xcodeproj` in Xcode and press ⌘R
 - Build check (for Claude): `xcodebuild -project Giffy/Giffy.xcodeproj -scheme Giffy -destination 'platform=macOS' build`
-- Lint: `swiftlint`
+- Lint: `swiftlint` (use `swiftlint --fix` for auto-fixable issues)
+- Git hooks live in `.githooks/`; enable once per clone with `git config core.hooksPath .githooks`. pre-commit runs SwiftLint on staged Swift files, pre-push runs it on the whole project
 
 ## Working rules
 
@@ -80,7 +81,7 @@ Run all commands from the repo root.
 - Ask before adding any third-party dependency other than the approved ones
 - Avoid hand-editing `project.pbxproj`; ask first when a project setting has to change
 - One feature = one branch = one PR; keep commits small
-- Commit only when explicitly asked
+- Never run `git commit` or `git push` (both are denied in `.claude/settings.json` and blocked by the git hooks). When a task is done, propose a commit message and let the developer commit and push
 - Run `swiftlint` and a build check before declaring a task done
 - At the end of a session, update "Current status" and the checkboxes in `docs/PLAN.md`
 - Keep this file short: move details into `docs/`

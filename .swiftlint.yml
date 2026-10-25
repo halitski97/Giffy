@@ -1,0 +1,5 @@
+# SwiftLint configuration for Giffy. Run `swiftlint` from the repo root.
+included:
+  - Giffy/Giffy
+excluded:
+  - docs
