@@ -1,0 +1,22 @@
+#!/bin/sh
+# Giffy pre-push hook.
+# 1. Pushes are made by the developer, never by Claude Code.
+# 2. The whole project must pass SwiftLint (warnings count as errors).
+
+# Git GUIs (Sourcetree, Xcode) run hooks with a minimal PATH, so add Homebrew explicitly.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+if [ -n "$CLAUDE_CODE_CHILD_SESSION" ]; then
+  echo "pre-push: pushes are made by the developer, not by Claude Code." >&2
+  exit 1
+fi
+
+if ! command -v swiftlint >/dev/null 2>&1; then
+  echo "pre-push: SwiftLint is not installed (brew install swiftlint)." >&2
+  exit 1
+fi
+
+if ! swiftlint lint --strict --quiet; then
+  echo "pre-push: SwiftLint found violations. Fix them before pushing." >&2
+  exit 1
+fi

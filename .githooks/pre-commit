@@ -1,0 +1,25 @@
+#!/bin/sh
+# Giffy pre-commit hook.
+# 1. Commits are made by the developer, never by Claude Code.
+# 2. Staged Swift files must pass SwiftLint (warnings count as errors).
+
+# Git GUIs (Sourcetree, Xcode) run hooks with a minimal PATH, so add Homebrew explicitly.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+if [ -n "$CLAUDE_CODE_CHILD_SESSION" ]; then
+  echo "pre-commit: commits are made by the developer, not by Claude Code." >&2
+  exit 1
+fi
+
+files=$(git diff --cached --name-only --diff-filter=ACM -- '*.swift')
+[ -z "$files" ] && exit 0
+
+if ! command -v swiftlint >/dev/null 2>&1; then
+  echo "pre-commit: SwiftLint is not installed (brew install swiftlint)." >&2
+  exit 1
+fi
+
+if ! printf '%s\n' "$files" | tr '\n' '\0' | xargs -0 swiftlint lint --strict --quiet --force-exclude; then
+  echo "pre-commit: SwiftLint found violations. Fix them (or run 'swiftlint --fix') and commit again." >&2
+  exit 1
+fi

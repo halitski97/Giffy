@@ -60,3 +60,23 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# ---- Giffy additions ----
+
+# macOS
+.DS_Store
+
+# Xcode build output
+build/
+DerivedData/
+
+# Claude Code: personal, local-only files
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Editors
+.vscode/
+
+# Local test recordings (large files, keep them out of the repo)
+*.mov
+*.mp4
