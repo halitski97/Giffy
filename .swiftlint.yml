@@ -3,3 +3,11 @@ included:
   - Giffy
 excluded:
   - docs
+
+custom_rules:
+  core_no_ui_imports:
+    name: "Core without UI imports"
+    included: "Giffy/Core/.*\\.swift"
+    regex: "^\\s*import\\s+(SwiftUI|AppKit|SwiftData|KeyboardShortcuts)\\b"
+    message: "Giffy/Core must not depend on UI or app frameworks (see docs/architecture.md)"
+    severity: error
