@@ -2,10 +2,10 @@
 
 ## Current status
 
-- **Stage:** M0, preparation (nearly done)
-- **Done:** design handoff, icons in `Assets.xcassets`, Xcode project, SwiftLint and git hooks, Plan Mode interview, `docs/architecture.md`
-- **Open in M0:** `docs/design/assets/` is missing (the HTML mock references `assets/icons/*.svg`); project settings from the architecture not applied yet
-- **Next step:** apply the project settings (user-selected files read/write, Movies Folder read/write, Swift 6, single deployment target 26.0), then start M1
+- **Stage:** M0 done; starting M1
+- **Done:** design handoff, icons in `Assets.xcassets`, Xcode project, SwiftLint and git hooks, Plan Mode interview, `docs/architecture.md`, project settings applied (user-selected files read/write, Movies Folder read/write, Swift 6, single deployment target 26.0)
+- **Open in M0:** `docs/design/assets/` is missing (the HTML mock references `assets/icons/*.svg`); left open, not blocking M1
+- **Next step:** M1 conversion core — start with `Giffy/Core/` scaffolding (`nonisolated` value types, `@concurrent` pipeline per `docs/architecture.md` §3), then reading frames from MOV/MP4 via AVFoundation
 
 > Update this section at the end of every session.
 
@@ -22,7 +22,7 @@ Each stage = one branch and one PR. A stage is done when all items are checked a
 - [x] Plan Mode: requirements interview and remaining decisions
 - [x] `docs/architecture.md` written
 - [x] This plan refined after Plan Mode
-- [ ] Project settings applied (see `docs/architecture.md` §5): `ENABLE_USER_SELECTED_FILES = readwrite`, `ENABLE_FILE_ACCESS_MOVIES_FOLDER = readwrite`, `SWIFT_VERSION = 6.0`, project-level `MACOSX_DEPLOYMENT_TARGET = 26.4` removed so the target's 26.0 applies
+- [x] Project settings applied (see `docs/architecture.md` §5): `ENABLE_USER_SELECTED_FILES = readwrite`, `ENABLE_FILE_ACCESS_MOVIES_FOLDER = readwrite`, `SWIFT_VERSION = 6.0`, project-level `MACOSX_DEPLOYMENT_TARGET = 26.4` removed so the target's 26.0 applies
 
 ### M1. Conversion core (no UI)
 - [ ] Core in `Giffy/Core/`: `nonisolated` value types, `@concurrent` pipeline (`docs/architecture.md` §3)
