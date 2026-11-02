@@ -2,10 +2,10 @@
 
 ## Current status
 
-- **Stage:** M0, preparation (nearly done)
-- **Done:** design handoff, icons in `Assets.xcassets`, Xcode project, SwiftLint and git hooks, Plan Mode interview, `docs/architecture.md`
-- **Open in M0:** `docs/design/assets/` is missing (the HTML mock references `assets/icons/*.svg`); project settings from the architecture not applied yet
-- **Next step:** apply the project settings (user-selected files read/write, Movies Folder read/write, Swift 6, single deployment target 26.0), then start M1
+- **Stage:** M0 and M1 done; starting M2
+- **Done:** design handoff, icons in `Assets.xcassets`, Xcode project, SwiftLint and git hooks, Plan Mode interview, `docs/architecture.md`, project settings applied; M1 conversion core in `Giffy/Core/` (VideoInspector, FrameReader, FrameTransformer, ImageIO-backed GIFEncoder, GIFConverter, SizeEstimator), validated on a real Simulator recording — see the 2026-11-01 decision log entry. M1b (custom quantizer) not needed
+- **Open in M0:** `docs/design/assets/` is missing (the HTML mock references `assets/icons/*.svg`); left open, not blocking later milestones
+- **Next step:** M2 — main window shell and input (app scenes, `NavigationSplitView` sidebar stub, toolbar, empty state, whole-window drop, file access layer)
 
 > Update this section at the end of every session.
 
@@ -22,17 +22,26 @@ Each stage = one branch and one PR. A stage is done when all items are checked a
 - [x] Plan Mode: requirements interview and remaining decisions
 - [x] `docs/architecture.md` written
 - [x] This plan refined after Plan Mode
-- [ ] Project settings applied (see `docs/architecture.md` §5): `ENABLE_USER_SELECTED_FILES = readwrite`, `ENABLE_FILE_ACCESS_MOVIES_FOLDER = readwrite`, `SWIFT_VERSION = 6.0`, project-level `MACOSX_DEPLOYMENT_TARGET = 26.4` removed so the target's 26.0 applies
+- [x] Project settings applied (see `docs/architecture.md` §5): `ENABLE_USER_SELECTED_FILES = readwrite`, `ENABLE_FILE_ACCESS_MOVIES_FOLDER = readwrite`, `SWIFT_VERSION = 6.0`, project-level `MACOSX_DEPLOYMENT_TARGET = 26.4` removed so the target's 26.0 applies
 
 ### M1. Conversion core (no UI)
-- [ ] Core in `Giffy/Core/`: `nonisolated` value types, `@concurrent` pipeline (`docs/architecture.md` §3)
-- [ ] Read frames from MOV/MP4 (AVFoundation)
-- [ ] Encode to GIF behind the `GIFEncoder` protocol (prototype, then pick the encoder); output always goes to a temp file first
-- [ ] Parameters: frame rate, width, colors, dithering, loop flag
-- [ ] Progress reporting (frame X of Y) and cancellation
-- [ ] Real output size estimation (e.g. encode a 1 s sample), replacing the handoff's mock formula
-- [ ] Manual check of quality and size on real Simulator recordings
-- [ ] Record the encoder decision in the decision log
+- [x] Core in `Giffy/Core/`: `nonisolated` value types, `@concurrent` pipeline (`docs/architecture.md` §3)
+- [x] Read frames from MOV/MP4 (AVFoundation)
+- [x] Encode to GIF behind the `GIFEncoder` protocol; output always goes to a temp file first (M1 uses ImageIO's own automatic per-frame quantization; no custom palette/dithering code)
+- [x] Parameters: frame rate, width, loop flag (`colors`/`dithering` fields exist on `ConversionSettings` but are inert until M1b)
+- [x] Progress reporting (frame X of Y) and cancellation
+- [x] Real output size estimation (e.g. encode a 1 s sample), replacing the handoff's mock formula
+- [x] Manual check of quality and size on real Simulator recordings
+- [x] Decide, from the manual quality/size check, whether M1b (custom quantizer) is needed → **no, not needed** (see decision log)
+- [x] Record the encoder decision in the decision log
+
+### M1b. Palette quantizer (not needed — kept for reference)
+M1's manual check showed ImageIO's automatic per-frame quantization already meets the bar (see decision log), so this milestone is not being started. Left here in case a future recording type or longer clip reopens the question.
+- [ ] Median-cut palette quantizer (`Core/Pipeline/PaletteQuantizer.swift`), one palette per conversion built from ~20 frames sampled across the trim range, reused for every frame
+- [ ] Floyd–Steinberg dithering (`Core/Pipeline/Ditherer.swift`) against that fixed palette
+- [ ] Empirical check: does ImageIO preserve a given indexed palette, or re-quantize anyway — record the result in the decision log
+- [ ] Wire `ConversionSettings.colors` / `.dithering` to the encoder
+- [ ] Enable the Colors slider and Dithering toggle in the Advanced section (M3 UI)
 
 ### M2. Main window shell and input
 - [ ] App scenes: main window, menu bar extra stub, Settings stub
@@ -43,7 +52,7 @@ Each stage = one branch and one PR. A stage is done when all items are checked a
 
 ### M3. Loaded state and options
 - [ ] File header, preview with looped playback
-- [ ] Inspector: file name, presets, Advanced section
+- [ ] Inspector: file name, presets, Advanced section (Colors slider and Dithering toggle stay hidden/disabled until M1b ships; until then Advanced exposes only frame rate and width)
 - [ ] "Custom" preset behavior when advanced values diverge
 - [ ] Footer: estimated size, 10 MB status, Convert to GIF
 
@@ -85,7 +94,6 @@ Each stage = one branch and one PR. A stage is done when all items are checked a
 
 ## Open questions
 
-- GIF encoder: ImageIO vs. gifski (decided after the M1 prototype)
 - Distribution method: undecided (M9). The app is built sandboxed for now; leaving the sandbox later only changes the `FolderAccess` implementation
 - Whether security-scoped bookmarks need the `com.apple.security.files.bookmarks.app-scope` entitlement on macOS 26 (check in M2)
 - Exact file name pattern and location of Simulator recordings on the developer's machine (check on the Desktop), to filter "last recording" reliably
@@ -110,3 +118,4 @@ Format: date, decision, reason.
 - 2026-10-29: One conversion at a time; further requests queue. Encoding is CPU-heavy, and serial jobs keep progress UI simple
 - 2026-10-29: History is result-only (no source bookmarks, no "Convert Again"); Save As… exports a copy
 - 2026-10-29: Single main `Window` instead of `WindowGroup`, so "Open Giffy" always targets the same window. Dropping a file while converting needs no confirmation: the running job continues in the queue
+- 2026-11-01: GIF encoder is ImageIO (`CGImageDestination`) with its own automatic per-frame quantization — no custom palette quantizer or Floyd–Steinberg dithering, no gifski. Validated against a real Simulator recording (1206×2622, 7.1s): all three presets stay well under GitHub's 10 MB limit (Small 1.07 MB, Balanced 2.18 MB/3s clip and 5.29 MB for the full 7.1s clip, Sharp 6.62 MB), `SizeEstimator`'s 1s-sample estimate is accurate to within ~1.5% of the actual output, conversions complete in 0.5-2.5s, and frames spot-checked across the sequence show no visible banding or inter-frame color flicker. M1b (custom quantizer) is therefore not started — `colors`/`dithering` stay inert on `ConversionSettings` until a future recording type reopens the question

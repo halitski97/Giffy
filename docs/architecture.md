@@ -99,7 +99,7 @@ struct Draft {
 ```
 
 - The handoff's four phases are kept. `failed` is added for the error state, and the import error lives on `empty`.
-- **The preset is derived, not stored.** `ConversionSettings` holds `fps`, `width` (nil = original), `colors`, `dithering`, `loops`, `trim` and `crop`. `Preset.matching(settings)` returns `.small`, `.balanced`, `.sharp` or nil, and nil is shown as "Custom". Choosing a preset overwrites `fps`, `width`, `colors` and `dithering`. The preset and the advanced values therefore can never disagree.
+- **The preset is derived, not stored.** `ConversionSettings` holds `fps`, `width` (nil = original), `colors`, `dithering`, `loops`, `trim` and `crop` (`colors`/`dithering` are present on the type but functionally inert until M1b ships — see §3). `Preset.matching(settings)` returns `.small`, `.balanced`, `.sharp` or nil, and nil is shown as "Custom". Choosing a preset overwrites `fps`, `width`, `colors` and `dithering`. The preset and the advanced values therefore can never disagree.
 - Dropping a new file while converting needs no "replace?" confirmation (a deliberate change from the handoff): the running job continues in the queue and stays visible in the sidebar, and the window moves to `.loaded` with the new file.
 - The toolbar subtitle, Crop toggle availability, Share enablement and inspector disabling are all computed from the phase.
 
@@ -140,10 +140,10 @@ All stages run inside that one call:
 2. **Plan frames**: target times are `trim.lowerBound + i / fps` for every `i` whose time is below `trim.upperBound`. GIF delays are in hundredths of a second, so per-frame delays are distributed to avoid drift (15 fps gives 7, 7, 6, 7, 7, 6…). The number of times is the `frameCount` shown as "frame X of Y".
 3. **Read** (`FrameReader`): `AVAssetReader` with an `AVAssetReaderTrackOutput` (32BGRA) and `timeRange` set to the trim range, decoding sequentially. For each target time it keeps the nearest decoded sample and drops the rest. Sequential reading is much faster than `AVAssetImageGenerator` for full conversions.
 4. **Transform** (`FrameTransformer`): apply the orientation, crop to the source-pixel rectangle, then scale to the target width, keeping the aspect ratio (vImage or a high-quality `CGContext`).
-5. **Encode** (`GIFEncoder` protocol: `begin(url:frameCount:loopCount:)`, `add(frame:delay:)`, `finish()`). Color count and dithering belong to the encoder, because gifski quantizes internally and ImageIO does not. M1 picks the implementation and records it in the decision log:
-   - ImageIO: our own palette quantizer and Floyd–Steinberg dithering feed indexed images to `CGImageDestination`. The prototype must check that ImageIO keeps the given palette.
-   - gifski: needs approval as a third-party dependency.
-   - Fallback: a small native GIF89a/LZW writer behind the same protocol.
+5. **Encode** (`GIFEncoder` protocol: `begin(url:frameCount:loopCount:)`, `add(frame:delay:)`, `finish()`). Giffy's goal is GIFs for PR review under GitHub's 10 MB limit, not best-possible animation quality, so M1 prototypes the simplest option first: plain (non-indexed) `CGImage` frames go straight to `CGImageDestinationAddImage`, and ImageIO quantizes each frame automatically. Width, frame rate and trim are the primary size/quality controls for M1. `colors` and `dithering` belong to the encoder in principle (gifski quantizes internally, ImageIO does not), but `ConversionSettings` only carries those fields for now — they aren't wired to any encoder behavior yet. M1 records its quality/size findings in the decision log and decides whether a follow-up is needed:
+   - If automatic quantization is good enough: ship it, nothing more to build for M1.
+   - If not: **M1b** (conditional, see `docs/PLAN.md`) builds our own palette quantizer and Floyd–Steinberg dithering — one palette per conversion, sampled across frames, to avoid the inter-frame flicker that independent per-frame quantization causes — feeding indexed images to the same `CGImageDestination` path. The prototype must then check that ImageIO keeps the given palette.
+   - gifski (needs approval as a third-party dependency) and a small native GIF89a/LZW writer remain further fallbacks if M1b still isn't enough.
 
    The loop flag maps to `kCGImagePropertyGIFLoopCount = 0` (or the equivalent in the chosen encoder).
 6. **Write safely**: the encoder always writes to a temp file in the app's container. On success, Services resolve the final name and move the file into the save folder (see §5). On failure or cancellation, the temp file is deleted. The save folder never contains partial GIFs.
