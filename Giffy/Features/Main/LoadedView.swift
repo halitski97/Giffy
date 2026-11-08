@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LoadedView: View {
     let draft: Draft
+    var isDimmed = false
 
     var body: some View {
         VStack(spacing: 12) {
@@ -18,5 +19,6 @@ struct LoadedView: View {
                 )
         }
         .padding(16)
+        .opacity(isDimmed ? 0.55 : 1)
     }
 }

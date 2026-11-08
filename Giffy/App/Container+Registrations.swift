@@ -9,4 +9,13 @@ extension Container {
     var sizeEstimateService: Factory<SizeEstimateService> {
         self { SizeEstimateService() }
     }
+
+    var saveFolderService: Factory<SaveFolderService> {
+        self { SaveFolderService() }
+    }
+
+    @MainActor
+    var conversionQueue: Factory<ConversionQueue> {
+        self { ConversionQueue() }.singleton
+    }
 }

@@ -11,12 +11,15 @@ enum ImportError: Equatable, Sendable {
     }
 }
 
-/// Only the cases M2 can reach are implemented. `docs/architecture.md` §2 fixes a 5-case
-/// enum; `.converting`/`.done`/`.failed` need `ConversionJob` (M4) and `HistoryItem` (M6),
-/// which don't exist yet — they're added additively once those milestones build them.
+/// `.done` carries a plain `ConvertedGIF` rather than architecture's `HistoryItem.ID`: M4a
+/// deliberately stays SwiftData-free (see docs/PLAN.md's decision log). `HistoryItem`/M6 can
+/// replace this payload later without touching anything else that reads `.done`.
 enum ConverterPhase {
     case empty(importError: ImportError?)
     case loaded(Draft)
+    case converting(Draft, job: ConversionJob.ID)
+    case failed(Draft, ConversionError)
+    case done(ConvertedGIF)
 }
 
 struct Draft {

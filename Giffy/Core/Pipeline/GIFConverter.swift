@@ -27,22 +27,33 @@ nonisolated struct GIFConverter {
             trim: request.settings.trim,
             destinationURL: request.destinationURL
         )
-        let frameCount = try await Self.runPipeline(context: context, encoder: &encoder, progress: progress)
+        do {
+            let frameCount = try await Self.runPipeline(context: context, encoder: &encoder, progress: progress)
 
-        let byteSize = Self.fileSize(at: request.destinationURL)
-        let scaledSize = Self.outputSize(sourceInfo: sourceInfo, settings: request.settings)
-        return GIFResult(
-            tempURL: request.destinationURL,
-            byteSize: byteSize,
-            frameCount: frameCount,
-            pixelSize: scaledSize,
-            duration: request.settings.trim.upperBound - request.settings.trim.lowerBound
-        )
+            let byteSize = Self.fileSize(at: request.destinationURL)
+            let scaledSize = Self.outputSize(sourceInfo: sourceInfo, settings: request.settings)
+            return GIFResult(
+                tempURL: request.destinationURL,
+                byteSize: byteSize,
+                frameCount: frameCount,
+                pixelSize: scaledSize,
+                duration: request.settings.trim.upperBound - request.settings.trim.lowerBound
+            )
+        } catch {
+            // Drop the encoder's CGImageDestination now, before sweeping for its atomic-write
+            // staging sibling — while `encoder` (held by this still-active frame) is alive, that
+            // sibling file can still be mid-write on ImageIO's own schedule.
+            encoder = ImageIOGIFEncoder()
+            try? FileManager.default.removeItem(at: request.destinationURL)
+            Self.removeAtomicWriteSiblings(of: request.destinationURL)
+            throw error
+        }
     }
 
     /// Reads frames for `context.trim` at `context.settings.fps`, transforms them, and feeds
-    /// them to `encoder`. On any failure or cancellation, the reader is stopped and the partial
-    /// temp file removed.
+    /// them to `encoder`. On any failure or cancellation, the reader is stopped; `convert`'s own
+    /// catch removes the partial temp file (it needs `encoder` released first, which this
+    /// function's caller owns — see `convert`).
     static func runPipeline<Encoder: GIFEncoder>(
         context: PipelineContext,
         encoder: inout Encoder,
@@ -94,8 +105,22 @@ nonisolated struct GIFConverter {
             return frameIndex
         } catch {
             reader.cancelReading()
-            try? FileManager.default.removeItem(at: destinationURL)
             throw error
+        }
+    }
+
+    /// `CGImageDestinationCreateWithURL` writes through a hidden `<name>.sb-<hash>-<random>`
+    /// staging sibling in the same directory, renamed into place only on a successful
+    /// `CGImageDestinationFinalize`. If we cancel or fail before that, the staging file is
+    /// orphaned — removing just `destinationURL` (which was never created) doesn't touch it.
+    /// Must run after the encoder's `CGImageDestination` is released (see `convert`'s catch),
+    /// or this sibling can still be mid-write.
+    private static func removeAtomicWriteSiblings(of destinationURL: URL) {
+        let directory = destinationURL.deletingLastPathComponent()
+        let prefix = destinationURL.lastPathComponent + ".sb-"
+        guard let entries = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else { return }
+        for entry in entries where entry.hasPrefix(prefix) {
+            try? FileManager.default.removeItem(at: directory.appendingPathComponent(entry))
         }
     }
 

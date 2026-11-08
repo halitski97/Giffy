@@ -62,7 +62,7 @@ Details live in `docs/architecture.md` (created after Plan Mode). Core principle
 
 - `Giffy.xcodeproj`: the Xcode project (in the repo root)
 - `Giffy/`: app sources and `Assets.xcassets`. It is a synchronized folder group, so files created on disk appear in Xcode automatically
-- `docs/`: `PLAN.md`, `architecture.md`, `design/`
+- `docs/`: `PLAN.md`, `architecture.md`, `design/`, `agents/` (config for the engineering skills)
 - Repo root: `CLAUDE.md`, `README.md`, `.gitignore`, `.swiftlint.yml`, `.claude/settings.json` (permissions), `.githooks/` (git hooks)
 
 ## Commands
@@ -85,3 +85,17 @@ Run all commands from the repo root.
 - Run `swiftlint` and a build check before declaring a task done
 - At the end of a session, update "Current status" and the checkboxes in `docs/PLAN.md`
 - Keep this file short: move details into `docs/`
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues for `halitski97/Giffy`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default triage labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one root `GLOSSARY.md` plus `docs/adr/`, with `docs/architecture.md` and the `docs/PLAN.md` Decision log treated as ADRs. See `docs/agents/domain.md`.

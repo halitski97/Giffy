@@ -1,8 +1,10 @@
 import SwiftUI
 
-struct InspectorView: View {
+struct InspectorView<Footer: View>: View {
     let model: ConverterModel
     let draft: Draft
+    var isInteractive = true
+    @ViewBuilder var footer: () -> Footer
 
     var body: some View {
         VStack(spacing: 0) {
@@ -14,12 +16,10 @@ struct InspectorView: View {
                 }
                 .padding(14)
             }
+            .disabled(!isInteractive)
 
-            EstimatedSizeFooterView(
-                estimatedByteSize: model.estimatedByteSize,
-                isEstimatingSize: model.isEstimatingSize
-            )
-            .padding(14)
+            footer()
+                .padding(14)
         }
     }
 }
