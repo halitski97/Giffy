@@ -18,23 +18,7 @@ struct MainView: View {
                 onChooseFile: { isFileImporterPresented = true }
             )
         }
-        .toolbar {
-            ToolbarItem {
-                Button {
-                    isFileImporterPresented = true
-                } label: {
-                    Label("New", systemImage: "plus")
-                }
-                .keyboardShortcut("o", modifiers: .command)
-            }
-            ToolbarItem {
-                Button {
-                } label: {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                }
-                .disabled(true)
-            }
-        }
+        .toolbar { toolbarContent }
         .dropDestination(for: URL.self) { urls, _ in
             guard let url = urls.first else { return false }
             Task { await converterModel.importFile(at: url) }
@@ -45,6 +29,25 @@ struct MainView: View {
         .fileImporter(isPresented: $isFileImporterPresented, allowedContentTypes: [.movie]) { result in
             guard case .success(let url) = result else { return }
             Task { await converterModel.importFile(at: url) }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem {
+            Button {
+                isFileImporterPresented = true
+            } label: {
+                Label("New", systemImage: "plus")
+            }
+            .keyboardShortcut("o", modifiers: .command)
+        }
+        ToolbarItem {
+            Button {
+            } label: {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            .disabled(true)
         }
     }
 }

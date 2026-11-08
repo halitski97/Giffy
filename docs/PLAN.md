@@ -2,11 +2,11 @@
 
 ## Current status
 
-- **Stage:** M0, M1 and M2 done; starting M3
-- **Done:** design handoff, icons in `Assets.xcassets`, Xcode project, SwiftLint and git hooks, Plan Mode interview, `docs/architecture.md`, project settings applied; M1 conversion core in `Giffy/Core/`, validated on a real Simulator recording (M1b not needed); M2 app shell — `App/` (GiffyApp, AppEnvironment), `Services/SourceLoader.swift`, `Features/Main/` (MainView, HistorySidebar stub, ConverterView, empty/loaded-placeholder views, ConverterModel/MainWindowModel, reduced `ConverterPhase`/`SidebarSelection`), `Features/MenuBar/` and `Features/Settings/` stubs. Build and lint pass; app launches cleanly (no crash, confirmed via process check — full interactive click-through needs the developer's own pass, see below)
+- **Stage:** M0-M3 done; starting M4
+- **Done:** design handoff, icons in `Assets.xcassets`, Xcode project, SwiftLint and git hooks, Plan Mode interview, `docs/architecture.md`, project settings applied; M1 conversion core in `Giffy/Core/`, validated on a real Simulator recording (M1b not needed); M2 app shell (scenes, empty state, whole-window drop, file import); Factory (`FactoryKit`) adopted for DI; M3 real loaded-state UI — file header, looped preview (`AVPlayerLayer`, not AVKit — see decision log), inspector (file name, preset picker with Custom detection, Advanced section), estimated-size footer with inert Convert button. Build and lint pass; full flow (import → preview → preset/settings changes → re-estimate → bad-file error) verified end-to-end via a temporary debug harness run against a real Simulator recording, then removed
 - **Open in M0:** `docs/design/assets/` is missing (the HTML mock references `assets/icons/*.svg`); left open, not blocking later milestones
-- **M2 follow-up:** the sandboxed verification environment has no Screen Recording/Accessibility permissions, so drag-and-drop, file-picker, and menu-bar interactions weren't click-tested automatically — only build/lint/launch were confirmed. Please do a quick manual pass (empty state copy, ⌘O/Choose File… picker restricted to movies, dropping/picking a real recording shows real header text in the loaded placeholder, dropping/picking a bad file shows the inline error, menu bar icon + Quit, Settings ⌘,) before merging
-- **Next step:** M3 — loaded state and options (real preview/inspector UI replacing M2's placeholder)
+- **Interactive click-through still needed from the developer:** this sandboxed environment has no Screen Recording/Accessibility permissions, so while M3's underlying logic was verified via a debug harness (see decision log), the actual rendered UI (layout, preset↔Advanced sync, spinner, status-dot color, preview playback smoothness) hasn't been visually confirmed. Please click through M2+M3 together before merging: empty state copy, ⌘O/Choose File… picker restricted to movies, drop/pick a real recording and check the header/preview/inspector look right, change presets and advanced fields and watch them stay in sync, drop a bad file and confirm the inline error, menu bar icon + Quit, Settings ⌘,
+- **Next step:** M4 — converting and result (real `ConversionQueue`, wiring up the now-inert Convert button, file access layer for the save folder)
 
 > Update this section at the end of every session.
 
@@ -52,10 +52,10 @@ M1's manual check showed ImageIO's automatic per-frame quantization already meet
 - [x] Reads a dropped/picked file for real via `Services/SourceLoader.swift` (wraps Core's `VideoInspector`); "loaded" state is a minimal placeholder (M3 builds the real preview/inspector UI)
 
 ### M3. Loaded state and options
-- [ ] File header, preview with looped playback
-- [ ] Inspector: file name, presets, Advanced section (Colors slider and Dithering toggle stay hidden/disabled until M1b ships; until then Advanced exposes only frame rate and width)
-- [ ] "Custom" preset behavior when advanced values diverge
-- [ ] Footer: estimated size, 10 MB status, Convert to GIF
+- [x] File header, preview with looped playback (via `AVPlayerLayer`, not AVKit — see decision log)
+- [x] Inspector: file name, presets, Advanced section (Colors slider and Dithering toggle stay hidden/disabled until M1b ships; until then Advanced exposes only frame rate and width)
+- [x] "Custom" preset behavior when advanced values diverge
+- [x] Footer: estimated size, 10 MB status, Convert to GIF (present but inert — M4 wires the real queue)
 
 ### M4. Converting and result
 - [ ] File access layer (`Services/FileAccess/`): save folder `~/Movies/Giffy` via the Movies entitlement, bookmark store; verify whether the app-scope bookmark entitlement is needed (moved here from M2, which only needed to read an already-granted dropped/picked file)
@@ -127,3 +127,5 @@ Format: date, decision, reason.
 - 2026-11-02: M2's file-access/save-folder/bookmark work moved to M4 (where it's actually needed) — M2 only reads a dropped/picked file, which needs nothing beyond the already-enabled "user-selected files" sandbox capability
 - 2026-11-02: M2 implements only the reachable cases of `ConverterPhase` (`.empty`/`.loaded`) and `SidebarSelection` (`.current`) rather than inventing placeholder `ConversionJob`/`HistoryItem` types to satisfy the architecture doc's full 5-case/3-case enums. Not a change to the architecture decision — the remaining cases are added additively once M4/M6 build the types they need
 - 2026-11-02: On a drop/pick, M2 calls Core's `VideoInspector` for real (via `Services/SourceLoader.swift`) rather than fabricating placeholder metadata; the "loaded" state is a minimal placeholder showing the real header text, with the actual preview/inspector UI staying out of scope until M3
+- 2026-11-08: Adopted [Factory](https://github.com/hmlongco/Factory) (`FactoryKit` product, v3.5.3) for dependency injection, replacing the hand-rolled `AppEnvironment`/`.environment(_:)` composition root from M2. `AppEnvironment.swift` is deleted; `App/Container+Registrations.swift` registers each Services/ type as a `Factory<T>`, and Features-layer consumers (e.g. `ConverterModel`) resolve via `@Injected` instead of constructor injection. Only the `FactoryKit` product is linked to the target (`FactoryKitDynamic` and `FactoryTesting` were dropped — the former is an alternate to `FactoryKit`, not additive; the latter is for a test target this project doesn't have). Each Services/ type also gets a short doc comment describing what it does, going forward
+- 2026-11-08: M3's preview player uses `AVPlayerLayer` (AVFoundation) wrapped in a plain `NSViewRepresentable`, not AVKit's `VideoPlayer`/`AVPlayerView`. On this machine's macOS 26.4.1, any AVKit video component crashes at construction ("failed to demangle superclass of VideoPlayerView from mangled name 'So12AVPlayerViewC'") — a confirmed Apple regression (FB22221857, reported on Apple Developer Forums as affecting macOS 26.4 betas and release). `AVPlayerLayer` is a different framework/class hierarchy and doesn't hit that code path; verified working end-to-end (import, preview, preset/settings changes, size re-estimation) via a temporary debug harness. Revisit once Apple ships a fix — `VideoPlayer` is the simpler, more idiomatic choice once it's safe to use again

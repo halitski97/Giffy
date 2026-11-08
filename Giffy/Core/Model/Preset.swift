@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum Preset: CaseIterable, Sendable {
+nonisolated enum Preset: CaseIterable, Sendable, Hashable {
     case small
     case balanced
     case sharp

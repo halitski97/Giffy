@@ -58,7 +58,7 @@ The `core_no_ui_imports` custom rule in `.swiftlint.yml` fails `swiftlint` (and 
 
 ### Composition
 
-`GiffyApp` creates one `ModelContainer` and one `AppEnvironment` (which holds the services) and injects them into all scenes with `.modelContainer(_:)` and `.environment(_:)`. Scenes:
+The app's composition root is [Factory](https://github.com/hmlongco/Factory)'s `Container.shared` (`FactoryKit` product), not a hand-rolled environment object. Each Services/ type registers as a `Factory<T>` computed property on `Container` (in `App/Container+Registrations.swift`), and Features-layer consumers resolve it with the `@Injected` property wrapper rather than constructor injection or SwiftUI's `.environment(_:)`. SwiftData's `ModelContainer` (M6) is a separate, orthogonal mechanism — whether it also gets a Factory registration is decided when M6 builds it. Scenes:
 
 - `Window("Giffy", id: "main")`: a single main window, so "Open Giffy" in the menu bar always brings back the same one. This replaces the handoff's `WindowGroup`.
 - `MenuBarExtra(isInserted:)` with the custom `MenuBarIcon` template image, `.menuBarExtraStyle(.window)`.
