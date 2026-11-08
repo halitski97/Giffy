@@ -7,6 +7,7 @@ final class ConverterModel {
     @ObservationIgnored @Injected(\.sourceLoader) private var sourceLoader: SourceLoader
     @ObservationIgnored @Injected(\.sizeEstimateService) private var sizeEstimateService: SizeEstimateService
     @ObservationIgnored @Injected(\.conversionQueue) private var conversionQueue: ConversionQueue
+    @ObservationIgnored @Injected(\.fileActions) private var fileActions: FileActions
 
     private(set) var phase: ConverterPhase = .empty(importError: nil)
     private(set) var estimatedByteSize: Int64?
@@ -94,6 +95,12 @@ final class ConverterModel {
         case .cancelled:
             phase = .loaded(draft)
         }
+    }
+
+    func moveCurrentResultToTrash() throws {
+        guard case .done(let result) = phase else { return }
+        try fileActions.moveToTrash(result.url)
+        phase = .empty(importError: nil)
     }
 
     private func enqueueConversion(_ draft: Draft) {

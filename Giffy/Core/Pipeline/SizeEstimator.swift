@@ -27,7 +27,15 @@ nonisolated struct SizeEstimator {
             trim: sampleTrim,
             destinationURL: tempURL
         )
-        _ = try await GIFConverter.runPipeline(context: context, encoder: &encoder, progress: { _ in })
+        do {
+            _ = try await GIFConverter.runPipeline(context: context, encoder: &encoder, progress: { _ in })
+        } catch {
+            // Same ordering requirement as GIFConverter.convert's own catch: drop the encoder's
+            // CGImageDestination before sweeping for its atomic-write staging sibling.
+            encoder = ImageIOGIFEncoder()
+            GIFConverter.removeAtomicWriteSiblings(of: tempURL)
+            throw error
+        }
 
         let sampleBytes = (try? FileManager.default.attributesOfItem(atPath: tempURL.path)[.size] as? Int64) ?? 0
         let scale = fullDuration / (sampleEnd - sampleStart)

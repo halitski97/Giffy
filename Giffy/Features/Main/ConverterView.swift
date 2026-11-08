@@ -33,7 +33,7 @@ struct ConverterView: View {
         case .failed(let draft, _):
             LoadedView(draft: draft)
         case .done(let result):
-            DoneView(result: result)
+            ReadyView(result: result)
         }
     }
 
@@ -59,7 +59,10 @@ struct ConverterView: View {
                 FailedFooterView(error: error, onTryAgain: model.tryAgain)
             }
             .inspectorColumnWidth(ideal: 300)
-        case .empty, .done:
+        case .done(let result):
+            ReadyInspectorView(model: model, result: result)
+                .inspectorColumnWidth(ideal: 300)
+        case .empty:
             EmptyView()
         }
     }
@@ -68,8 +71,8 @@ struct ConverterView: View {
         Binding(
             get: {
                 switch model.phase {
-                case .loaded, .converting, .failed: true
-                case .empty, .done: false
+                case .loaded, .converting, .failed, .done: true
+                case .empty: false
                 }
             },
             set: { _ in }

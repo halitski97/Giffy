@@ -8,4 +8,13 @@ nonisolated struct ConvertedGIF: Sendable, Equatable {
     let duration: Double
     let frameCount: Int
     let settings: ConversionSettings
+
+    /// e.g. "640 × 1388 · 7.4 s · 2.8 MB"
+    var headerText: String {
+        let width = Int(pixelSize.width.rounded())
+        let height = Int(pixelSize.height.rounded())
+        let durationText = String(format: "%.1f s", duration)
+        let sizeText = SizeFormatting.megabytesString(byteSize)
+        return "\(width) × \(height) · \(durationText) · \(sizeText)"
+    }
 }

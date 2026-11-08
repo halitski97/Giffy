@@ -27,7 +27,10 @@ final class ConversionQueue {
         if id == runningJobID {
             runningConversionTask?.cancel()
         } else if jobs[index].status.isQueued {
-            jobs.remove(at: index)
+            // Set a terminal status rather than removing the row outright: observers (e.g.
+            // ConverterModel's bridging `.onChange`) look the job up by id and need to find it
+            // in a terminal state, not find nothing and silently stall.
+            jobs[index].status = .cancelled
         }
     }
 

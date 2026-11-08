@@ -87,7 +87,10 @@ enum ConverterPhase {
     case empty(importError: ImportError?)          // drop zone; inline "This file isn't a video Giffy can read."
     case loaded(Draft)                             // preview, trim, crop, inspector
     case converting(Draft, job: ConversionJob.ID)  // progress comes from ConversionQueue; "Waiting…" while queued
-    case done(HistoryItem.ID)                      // GIF ready
+    case done(ConvertedGIF)                        // GIF ready — plain value, not HistoryItem.ID; M4a
+                                                    // decided to stay SwiftData-free (see docs/PLAN.md's
+                                                    // decision log). M6 may change this payload once
+                                                    // HistoryItem exists
     case failed(Draft, ConversionError)            // footer error + Try Again (re-enqueues the same Draft)
 }
 
@@ -111,7 +114,7 @@ struct Draft {
 struct ConversionJob: Identifiable {
     let id: UUID
     let request: ConversionRequest   // source URL + access token, settings, file name, origin (.window / .menuBar / .hotkey)
-    var status: Status               // .queued, .running(ConversionProgress), .finished(HistoryItem.ID), .failed(ConversionError), .cancelled
+    var status: Status               // .queued, .running(ConversionProgress), .finished(ConvertedGIF), .failed(ConversionError), .cancelled
 }
 ```
 

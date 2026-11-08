@@ -1,6 +1,6 @@
 import Foundation
 
-enum SizeFormatting {
+nonisolated enum SizeFormatting {
     /// GitHub's quoted 10 MB upload limit, in the same binary-unit convention
     /// `SourceInfo.headerText` already uses (bytes / 1_048_576, labeled "MB").
     static let githubUploadLimitBytes: Int64 = 10 * 1_048_576

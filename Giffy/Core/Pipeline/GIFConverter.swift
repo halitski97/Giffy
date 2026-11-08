@@ -115,7 +115,7 @@ nonisolated struct GIFConverter {
     /// orphaned — removing just `destinationURL` (which was never created) doesn't touch it.
     /// Must run after the encoder's `CGImageDestination` is released (see `convert`'s catch),
     /// or this sibling can still be mid-write.
-    private static func removeAtomicWriteSiblings(of destinationURL: URL) {
+    static func removeAtomicWriteSiblings(of destinationURL: URL) {
         let directory = destinationURL.deletingLastPathComponent()
         let prefix = destinationURL.lastPathComponent + ".sb-"
         guard let entries = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else { return }

@@ -1,9 +1,11 @@
 import Darwin
 import Foundation
 
-/// Resolves and writes into the default save folder `~/Movies/Giffy`. M4a only: no custom
+/// Resolves and writes into the default save folder `~/Movies/Giffy`. M4a/M4b only: no custom
 /// folder, no bookmarks (architecture.md §5's full FolderAccessing design is M8).
 struct SaveFolderService {
+    private let outputFileResolver = OutputFileResolver()
+
     func resolveFolder() throws -> URL {
         let folder = realHomeDirectory.appendingPathComponent("Movies/Giffy", isDirectory: true)
         do {
@@ -16,13 +18,7 @@ struct SaveFolderService {
 
     func save(tempURL: URL, outputBaseName: String) throws -> URL {
         let folder = try resolveFolder()
-        let safeBaseName = outputBaseName.replacingOccurrences(of: "/", with: "-")
-        var destination = folder.appendingPathComponent(safeBaseName).appendingPathExtension("gif")
-        if FileManager.default.fileExists(atPath: destination.path) {
-            // M4a-simple collision avoidance only; M4b replaces this with FileNameSanitizer + -2/-3…
-            let suffix = Int(Date().timeIntervalSince1970)
-            destination = folder.appendingPathComponent("\(safeBaseName)-\(suffix)").appendingPathExtension("gif")
-        }
+        let destination = outputFileResolver.resolve(baseName: outputBaseName, in: folder)
         do {
             try FileManager.default.moveItem(at: tempURL, to: destination)
         } catch let error as NSError {

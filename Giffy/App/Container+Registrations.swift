@@ -14,6 +14,14 @@ extension Container {
         self { SaveFolderService() }
     }
 
+    var pasteboard: Factory<Pasteboard> {
+        self { Pasteboard() }
+    }
+
+    var fileActions: Factory<FileActions> {
+        self { FileActions() }
+    }
+
     @MainActor
     var conversionQueue: Factory<ConversionQueue> {
         self { ConversionQueue() }.singleton
