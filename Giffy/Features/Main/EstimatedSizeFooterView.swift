@@ -3,6 +3,7 @@ import SwiftUI
 struct EstimatedSizeFooterView: View {
     let estimatedByteSize: Int64?
     let isEstimatingSize: Bool
+    let onConvert: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -34,13 +35,11 @@ struct EstimatedSizeFooterView: View {
                 }
             }
 
-            Button("Convert to GIF") {
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .keyboardShortcut(.return, modifiers: .command)
-            .disabled(true)
-            .frame(maxWidth: .infinity)
+            Button("Convert to GIF", action: onConvert)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .keyboardShortcut(.return, modifiers: .command)
+                .frame(maxWidth: .infinity)
         }
         .fixedSize(horizontal: false, vertical: true)
     }

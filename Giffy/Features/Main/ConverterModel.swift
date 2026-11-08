@@ -6,6 +6,7 @@ import Observation
 final class ConverterModel {
     @ObservationIgnored @Injected(\.sourceLoader) private var sourceLoader: SourceLoader
     @ObservationIgnored @Injected(\.sizeEstimateService) private var sizeEstimateService: SizeEstimateService
+    @ObservationIgnored @Injected(\.conversionQueue) private var conversionQueue: ConversionQueue
 
     private(set) var phase: ConverterPhase = .empty(importError: nil)
     private(set) var estimatedByteSize: Int64?
@@ -25,6 +26,7 @@ final class ConverterModel {
     }
 
     func importFile(at url: URL) async {
+        if case .converting = phase { return }
         do {
             let source = try await sourceLoader.load(url)
             var settings = ConversionSettings.balanced
@@ -62,6 +64,45 @@ final class ConverterModel {
             settings.colors = values.colors
             settings.dithering = values.dithering
         }
+    }
+
+    func startConversion() {
+        guard case .loaded(let draft) = phase else { return }
+        enqueueConversion(draft)
+    }
+
+    func tryAgain() {
+        guard case .failed(let draft, _) = phase else { return }
+        enqueueConversion(draft)
+    }
+
+    func cancelConversion() {
+        guard case .converting(_, let jobID) = phase else { return }
+        conversionQueue.cancel(jobID)
+    }
+
+    func handleJobStatusChange(_ status: ConversionJob.Status, draft: Draft) {
+        switch status {
+        case .queued, .running:
+            break
+        case .finished(let result):
+            stopActiveAccess()
+            resetEstimate()
+            phase = .done(result)
+        case .failed(let error):
+            phase = .failed(draft, error)
+        case .cancelled:
+            phase = .loaded(draft)
+        }
+    }
+
+    private func enqueueConversion(_ draft: Draft) {
+        let request = ConversionRequest(
+            sourceURL: draft.url,
+            settings: draft.settings,
+            outputBaseName: draft.displayName
+        )
+        phase = .converting(draft, job: conversionQueue.enqueue(request))
     }
 
     private func scheduleSizeEstimate(for draft: Draft) {
