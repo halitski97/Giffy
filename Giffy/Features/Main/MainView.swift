@@ -20,7 +20,7 @@ struct MainView: View {
         }
         .toolbar { toolbarContent }
         .dropDestination(for: URL.self) { urls, _ in
-            guard let url = urls.first else { return false }
+            guard !isConverting, let url = urls.first else { return false }
             Task { await converterModel.importFile(at: url) }
             return true
         } isTargeted: { targeted in
@@ -41,6 +41,7 @@ struct MainView: View {
                 Label("New", systemImage: "plus")
             }
             .keyboardShortcut("o", modifiers: .command)
+            .disabled(isConverting)
         }
         ToolbarItem {
             Button {
@@ -49,5 +50,9 @@ struct MainView: View {
             }
             .disabled(true)
         }
+    }
+
+    private var isConverting: Bool {
+        if case .converting = converterModel.phase { true } else { false }
     }
 }
