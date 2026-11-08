@@ -2,10 +2,11 @@
 
 ## Current status
 
-- **Stage:** M0 and M1 done; starting M2
-- **Done:** design handoff, icons in `Assets.xcassets`, Xcode project, SwiftLint and git hooks, Plan Mode interview, `docs/architecture.md`, project settings applied; M1 conversion core in `Giffy/Core/` (VideoInspector, FrameReader, FrameTransformer, ImageIO-backed GIFEncoder, GIFConverter, SizeEstimator), validated on a real Simulator recording — see the 2026-11-01 decision log entry. M1b (custom quantizer) not needed
+- **Stage:** M0, M1 and M2 done; starting M3
+- **Done:** design handoff, icons in `Assets.xcassets`, Xcode project, SwiftLint and git hooks, Plan Mode interview, `docs/architecture.md`, project settings applied; M1 conversion core in `Giffy/Core/`, validated on a real Simulator recording (M1b not needed); M2 app shell — `App/` (GiffyApp, AppEnvironment), `Services/SourceLoader.swift`, `Features/Main/` (MainView, HistorySidebar stub, ConverterView, empty/loaded-placeholder views, ConverterModel/MainWindowModel, reduced `ConverterPhase`/`SidebarSelection`), `Features/MenuBar/` and `Features/Settings/` stubs. Build and lint pass; app launches cleanly (no crash, confirmed via process check — full interactive click-through needs the developer's own pass, see below)
 - **Open in M0:** `docs/design/assets/` is missing (the HTML mock references `assets/icons/*.svg`); left open, not blocking later milestones
-- **Next step:** M2 — main window shell and input (app scenes, `NavigationSplitView` sidebar stub, toolbar, empty state, whole-window drop, file access layer)
+- **M2 follow-up:** the sandboxed verification environment has no Screen Recording/Accessibility permissions, so drag-and-drop, file-picker, and menu-bar interactions weren't click-tested automatically — only build/lint/launch were confirmed. Please do a quick manual pass (empty state copy, ⌘O/Choose File… picker restricted to movies, dropping/picking a real recording shows real header text in the loaded placeholder, dropping/picking a bad file shows the inline error, menu bar icon + Quit, Settings ⌘,) before merging
+- **Next step:** M3 — loaded state and options (real preview/inspector UI replacing M2's placeholder)
 
 > Update this section at the end of every session.
 
@@ -44,11 +45,11 @@ M1's manual check showed ImageIO's automatic per-frame quantization already meet
 - [ ] Enable the Colors slider and Dithering toggle in the Advanced section (M3 UI)
 
 ### M2. Main window shell and input
-- [ ] App scenes: main window, menu bar extra stub, Settings stub
-- [ ] `NavigationSplitView` with sidebar stub, toolbar (Crop toggle, New ⌘O, Share)
-- [ ] Empty state: drop zone, Choose File…, ⌘O
-- [ ] Whole-window drop in every state; unsupported-file error
-- [ ] File access layer (`Services/FileAccess/`): save folder `~/Movies/Giffy` via the Movies entitlement, bookmark store; verify whether the app-scope bookmark entitlement is needed
+- [x] App scenes: main window, menu bar extra stub, Settings stub
+- [x] `NavigationSplitView` with sidebar stub, toolbar (New ⌘O, Share — Crop toggle omitted until M5 gives it a real on/off meaning)
+- [x] Empty state: drop zone, Choose File…, ⌘O
+- [x] Whole-window drop in reachable states (`.empty`, placeholder `.loaded`); unsupported-file error
+- [x] Reads a dropped/picked file for real via `Services/SourceLoader.swift` (wraps Core's `VideoInspector`); "loaded" state is a minimal placeholder (M3 builds the real preview/inspector UI)
 
 ### M3. Loaded state and options
 - [ ] File header, preview with looped playback
@@ -57,7 +58,10 @@ M1's manual check showed ImageIO's automatic per-frame quantization already meet
 - [ ] Footer: estimated size, 10 MB status, Convert to GIF
 
 ### M4. Converting and result
+- [ ] File access layer (`Services/FileAccess/`): save folder `~/Movies/Giffy` via the Movies entitlement, bookmark store; verify whether the app-scope bookmark entitlement is needed (moved here from M2, which only needed to read an already-granted dropped/picked file)
 - [ ] `ConversionQueue`: one job at a time, others queued; temp file moved into the save folder on success
+- [ ] `ConverterPhase` gains `.converting(Draft, job: ConversionJob.ID)` and `.failed(Draft, ConversionError)` (additive to M2's `ConverterPhase`, which only implemented `.empty`/`.loaded`); `.done(HistoryItem.ID)` needs `HistoryItem`, which is M6 — decide here whether M4 introduces a minimal `HistoryItem` ahead of M6's full SwiftData schema, or whether "GIF ready" waits for M6
+- [ ] `SidebarSelection` gains `.job(ConversionJob.ID)`
 - [ ] Converting state: progress, time remaining, Cancel
 - [ ] "GIF ready" state: GIF preview, details, actions
 - [ ] Copy to Clipboard, Reveal in Finder, Save As…, Move to Trash (with confirmation)
@@ -71,9 +75,10 @@ M1's manual check showed ImageIO's automatic per-frame quantization already meet
 
 ### M6. History and sidebar
 - [ ] SwiftData model for history items
-- [ ] Date-grouped sidebar list, search, in-progress row
+- [ ] Date-grouped sidebar list (replaces M2's `HistorySidebar` stub), search, in-progress row
 - [ ] Row context menu and drag out as file
 - [ ] Prune by "Keep history" setting; clear history (GIF files stay on disk)
+- [ ] `ConverterPhase.done` and `SidebarSelection.history(HistoryItem.ID)` gain a real backing type (`HistoryItem`)
 
 ### M7. Menu bar extra
 - [ ] Menu bar item uses the custom `MenuBarIcon` template image
@@ -119,3 +124,6 @@ Format: date, decision, reason.
 - 2026-10-29: History is result-only (no source bookmarks, no "Convert Again"); Save As… exports a copy
 - 2026-10-29: Single main `Window` instead of `WindowGroup`, so "Open Giffy" always targets the same window. Dropping a file while converting needs no confirmation: the running job continues in the queue
 - 2026-11-01: GIF encoder is ImageIO (`CGImageDestination`) with its own automatic per-frame quantization — no custom palette quantizer or Floyd–Steinberg dithering, no gifski. Validated against a real Simulator recording (1206×2622, 7.1s): all three presets stay well under GitHub's 10 MB limit (Small 1.07 MB, Balanced 2.18 MB/3s clip and 5.29 MB for the full 7.1s clip, Sharp 6.62 MB), `SizeEstimator`'s 1s-sample estimate is accurate to within ~1.5% of the actual output, conversions complete in 0.5-2.5s, and frames spot-checked across the sequence show no visible banding or inter-frame color flicker. M1b (custom quantizer) is therefore not started — `colors`/`dithering` stay inert on `ConversionSettings` until a future recording type reopens the question
+- 2026-11-02: M2's file-access/save-folder/bookmark work moved to M4 (where it's actually needed) — M2 only reads a dropped/picked file, which needs nothing beyond the already-enabled "user-selected files" sandbox capability
+- 2026-11-02: M2 implements only the reachable cases of `ConverterPhase` (`.empty`/`.loaded`) and `SidebarSelection` (`.current`) rather than inventing placeholder `ConversionJob`/`HistoryItem` types to satisfy the architecture doc's full 5-case/3-case enums. Not a change to the architecture decision — the remaining cases are added additively once M4/M6 build the types they need
+- 2026-11-02: On a drop/pick, M2 calls Core's `VideoInspector` for real (via `Services/SourceLoader.swift`) rather than fabricating placeholder metadata; the "loaded" state is a minimal placeholder showing the real header text, with the actual preview/inspector UI staying out of scope until M3
