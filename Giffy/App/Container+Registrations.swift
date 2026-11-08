@@ -5,4 +5,8 @@ extension Container {
     var sourceLoader: Factory<SourceLoader> {
         self { SourceLoader() }
     }
+
+    var sizeEstimateService: Factory<SizeEstimateService> {
+        self { SizeEstimateService() }
+    }
 }

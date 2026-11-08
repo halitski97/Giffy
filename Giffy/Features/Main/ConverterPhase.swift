@@ -23,4 +23,8 @@ struct Draft {
     var source: SourceInfo
     var settings: ConversionSettings
     var fileName: String
+    var url: URL
+
+    var recordingName: String { url.deletingPathExtension().lastPathComponent }
+    var displayName: String { fileName.isEmpty ? recordingName : fileName }
 }
