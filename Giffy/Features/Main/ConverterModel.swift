@@ -1,14 +1,11 @@
+import FactoryKit
 import Foundation
 import Observation
 
 @Observable
 final class ConverterModel {
     private(set) var phase: ConverterPhase = .empty(importError: nil)
-    private let sourceLoader: SourceLoader
-
-    init(sourceLoader: SourceLoader) {
-        self.sourceLoader = sourceLoader
-    }
+    @ObservationIgnored @Injected(\.sourceLoader) private var sourceLoader: SourceLoader
 
     func importFile(at url: URL) async {
         do {

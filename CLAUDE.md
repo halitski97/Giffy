@@ -44,7 +44,7 @@ Rules:
 - Persistence: SwiftData (conversion history)
 - Frame reading: AVFoundation
 - GIF encoding: TBD, decided after the M1 prototype (native ImageIO vs. gifski)
-- Dependencies: [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) (Swift Package) for global hotkeys. This is the only approved third-party dependency so far.
+- Dependencies: [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) (Swift Package) for global hotkeys; [Factory](https://github.com/hmlongco/Factory) (`FactoryKit` product only) for dependency injection — the app's composition root (see `docs/architecture.md` §1). These are the only approved third-party dependencies so far.
 - Linting: [SwiftLint](https://github.com/realm/swiftlint)
 - Automated tests: none for now
 
