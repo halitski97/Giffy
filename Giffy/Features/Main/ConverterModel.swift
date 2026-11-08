@@ -4,8 +4,9 @@ import Observation
 
 @Observable
 final class ConverterModel {
-    private(set) var phase: ConverterPhase = .empty(importError: nil)
     @ObservationIgnored @Injected(\.sourceLoader) private var sourceLoader: SourceLoader
+
+    private(set) var phase: ConverterPhase = .empty(importError: nil)
 
     func importFile(at url: URL) async {
         do {
